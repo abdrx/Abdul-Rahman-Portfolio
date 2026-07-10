@@ -1,2 +1,6 @@
-.claude/
 .DS_Store
+.env
+.env.*
+*.pem
+id_rsa*
+*.key
