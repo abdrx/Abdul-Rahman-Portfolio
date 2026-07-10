@@ -1,0 +1,46 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Least privilege: this workflow only needs to read the repo.
+permissions:
+  contents: read
+
+# Never let two deploys race each other against the same server.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Optional but recommended for a public repo: create a "production" environment
+    # under Settings > Environments, add the secrets below to it (instead of repo-wide
+    # secrets), and turn on "Required reviewers" so every deploy needs manual approval
+    # even if main gets pushed to unexpectedly.
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up deploy key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Deploy
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: /home/runner/.ssh/deploy_key
+          REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
+        run: ./deploy.sh --go
+
+      - name: Wipe deploy key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
