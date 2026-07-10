@@ -137,34 +137,72 @@
     });
   })();
 
-  // ---------- hero typewriter ----------
-  // cycles through a few real facts, terminal-prompt style. Index only.
-  // Shows the first phrase statically, no typing/deleting, under reduced motion.
+  // ---------- hero entrance: name types in, then the intro line, then the
+  // terminal prompt below starts cycling. Index only. The real text is
+  // already in the DOM (good for no-JS/SEO/AT); under reduced motion this
+  // whole sequence is skipped and everything just shows as normal static
+  // text with no typing/deleting at all. ----------
   (function(){
-    var el = document.getElementById('heroType');
-    if(!el) return;
+    var l1 = document.getElementById('heroL1');
+    var l2 = document.getElementById('heroL2');
+    var lead = document.getElementById('heroLead');
+    var typeEl = document.getElementById('heroType');
     var phrases = [
       'leads a 22-product logistics ERP at Shypv',
       'built a payment gateway, PCI-DSS certified',
       'ships full-stack, backend to frontend'
     ];
-    if(reduce){ el.textContent = phrases[0]; return; }
-    var pi = 0, ci = 0, deleting = false;
-    function tick(){
-      var word = phrases[pi];
-      if(!deleting){
-        ci++;
-        el.textContent = word.slice(0, ci);
-        if(ci === word.length){ deleting = true; setTimeout(tick, 1700); return; }
-        setTimeout(tick, 34 + Math.random() * 38);
-      } else {
-        ci--;
-        el.textContent = word.slice(0, ci);
-        if(ci === 0){ deleting = false; pi = (pi + 1) % phrases.length; setTimeout(tick, 260); return; }
-        setTimeout(tick, 20);
+
+    function cyclePrompt(){
+      if(!typeEl) return;
+      var pi = 0, ci = 0, deleting = false;
+      function tick(){
+        var word = phrases[pi];
+        if(!deleting){
+          ci++;
+          typeEl.textContent = word.slice(0, ci);
+          if(ci === word.length){ deleting = true; setTimeout(tick, 1700); return; }
+          setTimeout(tick, 34 + Math.random() * 38);
+        } else {
+          ci--;
+          typeEl.textContent = word.slice(0, ci);
+          if(ci === 0){ deleting = false; pi = (pi + 1) % phrases.length; setTimeout(tick, 260); return; }
+          setTimeout(tick, 20);
+        }
       }
+      tick();
     }
-    tick();
+
+    if(reduce || !l1 || !l2){
+      if(typeEl) typeEl.textContent = phrases[0];
+      return;
+    }
+
+    var name1 = l1.textContent, name2 = l2.textContent;
+    var leadText = lead ? lead.textContent.trim() : '';
+    l1.textContent = '';
+    l2.textContent = '';
+    if(lead) lead.textContent = '';
+
+    function typeInto(el, text, speed, done){
+      var i = 0;
+      (function step(){
+        el.textContent = text.slice(0, i);
+        if(i <= text.length){ i++; setTimeout(step, speed); }
+        else if(done){ done(); }
+      })();
+    }
+
+    typeInto(l1, name1, 55, function(){
+      setTimeout(function(){
+        typeInto(l2, name2, 55, function(){
+          setTimeout(function(){
+            if(lead) typeInto(lead, leadText, 11, cyclePrompt);
+            else cyclePrompt();
+          }, 250);
+        });
+      }, 160);
+    });
   })();
 
   // ---------- magnetic tilt on project + skill cards ----------
@@ -281,13 +319,15 @@
   })();
 
   // ---------- github graph fallback ----------
-  // shows a text fallback if the external chart image doesn't load. Index only.
+  // shows a text fallback per chart if its external image doesn't load. Index only.
   (function(){
-    var img = document.querySelector('.gh-chart img');
-    if(!img) return;
-    function fb(){ img.style.display='none'; var f=img.nextElementSibling; if(f) f.style.display='block'; }
-    if(img.complete && img.naturalWidth===0) fb();
-    setTimeout(function(){ if(!(img.complete && img.naturalWidth>0)) fb(); }, 4500);
+    var imgs = document.querySelectorAll('.gh-chart img');
+    if(!imgs.length) return;
+    imgs.forEach(function(img){
+      function fb(){ img.style.display='none'; var f=img.nextElementSibling; if(f) f.style.display='block'; }
+      if(img.complete && img.naturalWidth===0) fb();
+      setTimeout(function(){ if(!(img.complete && img.naturalWidth>0)) fb(); }, 4500);
+    });
   })();
 
   // ---------- scrollspy ----------

@@ -255,14 +255,14 @@ h1.reveal,.head.reveal{
 
 /* boxed / card-like elements fade+scale in rather than just sliding */
 .card.reveal,.cat.reveal,.job.reveal,.rcol.reveal,.feature.reveal,
-.gh-handle.reveal,.shot.reveal,.gh-chart.reveal,.gh-handles.reveal,.contact-inner.reveal{
+.gh-handle.reveal,.shot.reveal,.gh-details.reveal,.contact-inner.reveal{
   transform:translateY(12px) scale(.98);
   transition:opacity .6s var(--ease-settled), transform .6s var(--ease-settled)}
 
 @media (prefers-reduced-motion:reduce){
   .reveal,.reveal.in,h1.reveal,.head.reveal,
   .card.reveal,.cat.reveal,.job.reveal,.rcol.reveal,.feature.reveal,
-  .gh-handle.reveal,.shot.reveal,.gh-chart.reveal,.gh-handles.reveal,.contact-inner.reveal{
+  .gh-handle.reveal,.shot.reveal,.gh-details.reveal,.contact-inner.reveal{
     opacity:1;transform:none;transition:none}
 }
 
@@ -404,43 +404,39 @@ a.card:hover .thumbwrap::after{opacity:1}
 .card .toprow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
 
 /* github section */
-.gh-wrap{display:grid;grid-template-columns:1.1fr 1fr;gap:26px;align-items:start}
+.gh-details{border:none}
+.gh-summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:13.5px;color:var(--text);background:var(--panel);
+  border:1px solid var(--line-2);border-radius:9px;padding:11px 18px;user-select:none;
+  transition:border-color .18s ease}
+.gh-summary::-webkit-details-marker{display:none}
+.gh-summary:hover{border-color:var(--accent)}
+.gh-summary .chev{width:15px;height:15px;flex:0 0 auto}
+@media (prefers-reduced-motion:no-preference){
+  .gh-summary .chev{transition:transform .25s ease}
+}
+.gh-details[open] .gh-summary .chev{transform:rotate(180deg)}
+.gh-wrap{display:flex;flex-direction:column;gap:22px;margin-top:22px}
+
+.gh-charts{display:flex;flex-direction:column;gap:16px}
 .gh-chart{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:22px}
 .gh-chart .lbl{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.gh-chart .lbl .tag-primary{margin-left:auto;color:var(--accent-text);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--accent-text);border-radius:6px;padding:2px 8px}
 .gh-chart img{width:100%;height:auto;display:block}
 .gh-chart .fallback{color:var(--muted);font-size:14px}
 
 .gh-handles{display:flex;flex-direction:column;gap:10px}
 .gh-handle{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;transition:border-color .2s ease}
 .gh-handle:hover{border-color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){
+  .gh-handle:hover{transform:translateX(3px);transition:transform .2s ease, border-color .2s ease}
+}
 .gh-handle .h{display:flex;align-items:center;gap:11px}
 .gh-handle .h svg{width:19px;height:19px;flex:0 0 auto}
 .gh-handle .name{font-family:var(--mono);font-size:14px;color:var(--text)}
 .gh-handle .tag{font-family:var(--mono);font-size:11px;color:var(--muted-2)}
 .gh-handle .go{font-family:var(--mono);font-size:12px;color:var(--accent-text)}
 
-/* per-item staggered slide-in once the list's .reveal IntersectionObserver
-   adds .in to .gh-handles (see site.js) — reads as a cascading entrance
-   for a list of 4, rather than the whole block fading in as one unit.
-   Base rule is the opacity-only accessible fallback; the offset/stagger
-   is reduced-motion-gated. Hover transform is scoped to `.in` at higher
-   specificity than the reveal's own transform:none so it isn't shadowed
-   once the list has settled in. */
-.gh-handles .gh-handle{opacity:0}
-.gh-handles.in .gh-handle{opacity:1;transition:opacity .4s var(--ease-settled), border-color .2s ease}
-@media (prefers-reduced-motion:no-preference){
-  .gh-handles .gh-handle{transform:translateX(30px)}
-  .gh-handles.in .gh-handle{transform:none;transition:opacity .55s var(--ease-settled), transform .55s var(--ease-settled), border-color .2s ease}
-  .gh-handles.in .gh-handle:nth-child(1){transition-delay:.06s}
-  .gh-handles.in .gh-handle:nth-child(2){transition-delay:.15s}
-  .gh-handles.in .gh-handle:nth-child(3){transition-delay:.24s}
-  .gh-handles.in .gh-handle:nth-child(4){transition-delay:.33s}
-  .gh-handles.in .gh-handle:hover{transform:translateX(3px);transition:transform .2s ease, border-color .2s ease}
-}
-
-@media (max-width:820px){
-  .gh-wrap{grid-template-columns:1fr;gap:18px}
-}
 @media (max-width:720px){
   .gallery.web{grid-template-columns:1fr}
   .browser .bar .url{font-size:10px}
