@@ -1,47 +1,51 @@
-# abdrx portfolio
+# Abdul Rahman S
 
-Personal site for Abdul Rahman S. Static HTML, no build step.
-Light and dark themes. Each app has its own project page.
+Full-stack developer and tech lead, based in Dubai.
 
-## Structure
-```
-index.html                     main portfolio
-Abdul_Rahman_Resume.pdf         linked by the Résumé buttons
-assets/
-  site.css                      shared styles + the theme system
-  *.png, *.jpg                  app screenshots, per project
-projects/
-  shypv-platform.html           Shypv Platform case study (flagship, live links)
-  mince-n-chop.html             Mince N Chop case study
-  society-app.html              Society Manager case study
-  campus-events.html            Campus Events case study
-```
+I lead the team and build the product, across logistics and payments —
+backend to frontend, the AI we bring in, and the client calls where we
+figure out what's actually needed. I take features from idea to live.
 
-## Live site
-Repo: `github.com/abdrx/Abdul-Rahman-Portfolio`
+## Now
+**Technical Product Owner, Timexpress · Shypv** (Sep 2025 — present)
+Lead a logistics ERP made of 22 integrated products. I run the team, plan
+features, bring in new AI where it helps, and sit with clients to turn
+their requirements into shipped work. Currently helping the company raise
+a startup round out of Singapore — from the business model canvas to the
+high-leverage features behind the pitch.
 
-To publish with GitHub Pages:
-1. On GitHub: **Settings → Pages → Source: Deploy from a branch**, branch `main`, folder `/ (root)`. Save.
-2. Wait a minute. Live at `https://abdrx.github.io/Abdul-Rahman-Portfolio/`.
+## Before that
+**Team Lead & Full-Stack Developer, Intermo Payment Gateway** (Feb 2023 — Sep 2025)
+Led the build of a secure multi-currency payment gateway on Java, Spring
+Boot, React, Flutter and AWS. Set up a fully automated CI/CD pipeline, drove
+the PCI-DSS work, shipped merchant plugins, and ran campaigns that pushed
+sign-ups up 14%.
 
-Want it at the bare `https://abdrx.github.io` instead? Rename this repo to `abdrx.github.io`
-(Settings → General → Repository name) — Pages picks that up automatically, nothing else changes.
+**Technical Co-Founder & Full-Stack Developer, Fizon Tech** (Jul 2020 — Feb 2023)
+Built full-stack and mobile products on Laravel and Flutter — marketplace,
+delivery and enterprise apps with payments and admin dashboards baked in,
+plus Python microservices and Flutter apps for drone telemetry.
 
-### Custom domain (optional)
-Buy a domain, add a `CNAME` file with the domain name, point DNS at GitHub Pages.
-Settings → Pages shows the exact records once Pages is on.
+## Stack
+Java · JavaScript · Python · Dart · PHP · Spring Boot · Node.js · Laravel ·
+Kafka · React · Next.js · React Native · Flutter · PostgreSQL · MySQL ·
+MongoDB · Firebase · AWS · Google Cloud · Docker · CI/CD · OAuth 2.0 · JWT ·
+RSA/AES · PCI-DSS
 
-## Themes
-The site follows the visitor's system setting first, and remembers their choice
-after they tap the sun/moon in the top bar.
+## Recognition
+- Smart India Hackathon 2022, Innovation Winner — ₹1,00,000
+- TNSI Best Innovative Idea, team lead — ₹1,00,000
+- CSI-InApp International Student Project Awards, Consolation Prize (2022)
+- Umagine Chennai Hackathon — ₹50,000
+- PCI-DSS Level 2 SAQ-D certified (Intermo Payment Gateway)
+- Java Foundation, Oracle Certified Developer
+- Best Outgoing Student, Anna University (CSE 2023)
 
-## Add a new app later
-1. Drop its screenshots into `assets/`.
-2. Copy `projects/campus-events.html`, rename it, and swap the title, text, and image paths.
-3. Add one card in `index.html` under the projects grid that links to it.
-That's the whole pattern. Nothing else to wire up.
+## Elsewhere
+- Site — https://abdulrahmanpro.online
+- Email — abdaheerabdulrahman@gmail.com
+- LinkedIn — linkedin.com/in/abdrx
+- GitHub — github.com/abdrx
 
-## Notes
-- Phone number is left off on purpose since the page is public.
-- GitHub section pulls a live contribution graph for `@abdrx` and links `@abdrx`,
-  `@abdrx2025`, `@abdul` and `@intermo`. Update the handle list in `index.html` if that changes.
+---
+*This repo is the source for the site above — static HTML, no build step, deployed via GitHub Actions.*
