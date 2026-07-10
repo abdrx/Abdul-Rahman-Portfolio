@@ -23,18 +23,23 @@
 
 <style>
   /* hero */
-  .hero{padding:92px 0 56px}
+  .hero{padding:92px 0 56px;position:relative}
   .hero .eyebrow{margin-bottom:26px}
   .hero h1{font-family:var(--display);font-weight:700;font-size:clamp(48px,9vw,104px);line-height:.96;letter-spacing:-.02em;margin-bottom:24px}
   .hero h1 .caret{color:var(--accent-text);animation:blink 1.15s step-end infinite}
   @keyframes blink{50%{opacity:0}}
   @media (prefers-reduced-motion:reduce){.hero h1 .caret{animation:none}}
+  /* soft glow that gently tracks the pointer, desktop only (see site.js) */
+  .hero-glow{position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.85;
+    background:radial-gradient(380px 380px at var(--mx,28%) var(--my,10%), var(--glow1), transparent 70%);
+    transition:opacity .5s ease}
+  @media (prefers-reduced-motion:reduce),(pointer:coarse){.hero-glow{display:none}}
   .lead{font-size:clamp(17px,2.3vw,20px);color:var(--text);max-width:600px;margin-bottom:34px}
   .lead .soft{color:var(--muted)}
   .cta{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:52px}
   .manifest{border-top:1px solid var(--line);padding-top:22px;display:flex;flex-wrap:wrap;gap:8px 30px;font-family:var(--mono);font-size:13px;color:var(--muted)}
   .manifest b{color:var(--text);font-weight:500}
-  .manifest .k{color:var(--accent-text)}
+  .manifest .k{color:var(--accent-text);font-variant-numeric:tabular-nums}
 
   /* about */
   .about p{font-size:clamp(17px,2.1vw,19px);max-width:720px;color:var(--text)}
@@ -44,15 +49,28 @@
   /* stack */
   .stack{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
   .cat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+  .cat.tilting{will-change:transform}
   .cat h3{font-family:var(--mono);font-weight:500;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text);margin-bottom:12px}
   .tags{display:flex;flex-wrap:wrap;gap:8px}
   .tag{font-size:13.5px;color:var(--muted);background:var(--tag-bg);border:1px solid var(--line);padding:5px 11px;border-radius:7px}
 
   /* experience */
-  .timeline{border-left:1px solid var(--line);margin-left:6px}
+  .timeline{position:relative;margin-left:6px;padding-left:1px}
+  .timeline::before{content:"";position:absolute;left:-1px;top:0;bottom:0;width:1px;background:var(--line)}
+  .timeline::after{content:"";position:absolute;left:-1px;top:0;width:1px;height:100%;
+    background:var(--accent);transform:scaleY(var(--tl-progress,0));transform-origin:top;
+    transition:transform .2s linear}
+  @media (prefers-reduced-motion:reduce){.timeline::after{transition:none}}
   .job{position:relative;padding:0 0 40px 30px}
   .job:last-child{padding-bottom:0}
   .job::before{content:"";position:absolute;left:-5px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--ink);border:2px solid var(--accent)}
+  .job.in::before{animation:dotPulse .9s var(--ease-settled) .15s 1}
+  @keyframes dotPulse{
+    0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent)}
+    70%{box-shadow:0 0 0 10px transparent}
+    100%{box-shadow:0 0 0 0 transparent}
+  }
+  @media (prefers-reduced-motion:reduce){.job.in::before{animation:none}}
   .job .idx{font-family:var(--mono);font-size:12px;color:var(--muted-2);letter-spacing:.1em}
   .job .top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;align-items:baseline;margin:6px 0 4px}
   .job h3{font-family:var(--display);font-weight:600;font-size:20px}
@@ -62,8 +80,18 @@
 
   /* projects */
   .projects{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;transition:border-color .2s ease, transform .2s ease;display:flex;flex-direction:column}
-  .card:hover{border-color:var(--line-2);transform:translateY(-3px)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;transition:border-color .2s ease;display:flex;flex-direction:column}
+  .card:hover{border-color:var(--line-2)}
+  .card.tilting{will-change:transform}
+  /* the translateY below is the CSS fallback for reduced-motion, coarse-pointer
+     and no-JS visitors. site.js's magnetic-tilt script sets an inline transform
+     on pointermove for fine-pointer visitors, which intentionally shadows this
+     rule while it's active — that's not a conflict to "clean up", it's the
+     graceful-degradation path, so don't delete this as dead code. */
+  @media (prefers-reduced-motion:no-preference){
+    .card{transition:border-color .2s ease, transform .2s ease}
+    .card:hover{transform:translateY(-3px)}
+  }
   a.card{color:inherit}
   a.card:hover{border-color:var(--accent)}
   .card .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
@@ -73,8 +101,10 @@
   .card .stackline{display:flex;flex-wrap:wrap;gap:7px}
   .card .stackline span{font-family:var(--mono);font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
   .viewdesigns{margin-top:16px;font-family:var(--mono);font-size:12.5px;color:var(--accent-text);display:inline-flex;align-items:center;gap:7px}
-  .viewdesigns .arw{transition:transform .2s ease}
-  a.card:hover .viewdesigns .arw{transform:translateX(4px)}
+  @media (prefers-reduced-motion:no-preference){
+    .viewdesigns .arw{transition:transform .2s ease}
+    a.card:hover .viewdesigns .arw{transform:translateX(4px)}
+  }
 
   /* recognition */
   .recog{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -107,6 +137,8 @@
 </head>
 <body>
 
+<div class="scroll-progress" aria-hidden="true"><span class="bar"></span></div>
+
 <div class="topbar">
   <div class="row">
     <span class="brand"><b>~/</b>abdrx</span>
@@ -122,7 +154,18 @@
         <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
         <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
       </button>
+      <button id="menuToggle" class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+        <span class="menu-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
     </div>
+  </div>
+  <div class="mobile-menu" id="mobileMenu" hidden>
+    <nav class="mobile-nav" aria-label="Site sections">
+      <a href="#projects">work</a>
+      <a href="#about">about</a>
+      <a href="#github" class="gh">github</a>
+      <a href="#contact">contact</a>
+    </nav>
   </div>
 </div>
 
@@ -130,6 +173,7 @@
 
   <!-- HERO -->
   <section class="hero">
+    <div class="hero-glow" aria-hidden="true"></div>
     <p class="eyebrow reveal">full-stack developer · tech lead · dubai</p>
     <h1 class="reveal">Abdul<br>Rahman S<span class="caret">_</span></h1>
     <p class="lead reveal">
@@ -358,65 +402,6 @@
   </div>
 </footer>
 
-<script>
-  // theme toggle
-  (function(){
-    var btn = document.getElementById('themeToggle');
-    if(!btn) return;
-    btn.addEventListener('click', function(){
-      var cur = document.documentElement.getAttribute('data-theme');
-      var next = cur === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      try{ localStorage.setItem('abdrx-theme', next); }catch(e){}
-    });
-  })();
-
-  // github graph: show fallback if the external chart doesn't load
-  (function(){
-    var img = document.querySelector('.gh-chart img');
-    if(!img) return;
-    function fb(){ img.style.display='none'; var f=img.nextElementSibling; if(f) f.style.display='block'; }
-    if(img.complete && img.naturalWidth===0) fb();
-    setTimeout(function(){ if(!(img.complete && img.naturalWidth>0)) fb(); }, 4500);
-  })();
-
-  // scrollspy: highlight active nav link
-  (function(){
-    var links = Array.prototype.slice.call(document.querySelectorAll('.nav a[href^="#"]'));
-    if(!links.length || !('IntersectionObserver' in window)) return;
-    var map = {};
-    links.forEach(function(a){ var id=a.getAttribute('href').slice(1); var s=document.getElementById(id); if(s) map[id]=a; });
-    var spy = new IntersectionObserver(function(es){
-      es.forEach(function(e){
-        if(e.isIntersecting){
-          links.forEach(function(a){ a.style.color=''; });
-          var a = map[e.target.id];
-          if(a && !a.classList.contains('gh')) a.style.color='var(--text)';
-        }
-      });
-    },{rootMargin:'-45% 0px -50% 0px'});
-    Object.keys(map).forEach(function(id){ spy.observe(document.getElementById(id)); });
-  })();
-
-  // scroll reveal
-  (function(){
-    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var els = document.querySelectorAll('.reveal');
-    if(reduce || !('IntersectionObserver' in window)){ els.forEach(function(el){el.classList.add('in')}); return; }
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){
-        if(e.isIntersecting){
-          var el = e.target;
-          var sibs = Array.prototype.slice.call(el.parentNode.querySelectorAll('.reveal'));
-          var i = sibs.indexOf(el);
-          el.style.transitionDelay = Math.min(i,5)*70 + 'ms';
-          el.classList.add('in');
-          io.unobserve(el);
-        }
-      });
-    },{threshold:0.12, rootMargin:'0px 0px -40px 0px'});
-    els.forEach(function(el){io.observe(el)});
-  })();
-</script>
+<script src="assets/site.js" defer></script>
 </body>
 </html>

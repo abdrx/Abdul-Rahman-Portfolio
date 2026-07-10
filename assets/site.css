@@ -1,6 +1,14 @@
 /* ============================================================
    abdrx portfolio — shared styles + theme system
    Two themes via [data-theme]. Amber accent stays; neutrals flip.
+
+   Motion policy (audited): every hover/click transform lives inside
+   an `@media (prefers-reduced-motion: no-preference)` block. Base
+   rules always set the correct *end state* (color/opacity/position)
+   with no animated property, so reduced-motion users still get the
+   state change — just instantly, with zero simulated motion. Opacity
+   fades are the one exception left always-on, since a plain fade is
+   the accessible fallback, not something to strip further.
    ============================================================ */
 
 /* ---- dark (default) ---- */
@@ -27,6 +35,8 @@
   --body:'Inter', system-ui, sans-serif;
   --mono:'JetBrains Mono', ui-monospace, monospace;
   --maxw:1080px;
+
+  --ease-settled:cubic-bezier(.16,.84,.28,1);
 }
 
 /* ---- light ---- */
@@ -63,6 +73,14 @@ body{
   overflow-x:hidden;position:relative;
   transition:background .3s ease, color .3s ease;
 }
+
+/* soft, temporary cross-fade applied to (almost) everything during a
+   theme switch, so flipping data-theme never reads as a hard flash.
+   The JS toggle adds this class for ~500ms around the attribute change. */
+html.theme-transition,
+html.theme-transition *{
+  transition:background-color .45s ease, border-color .45s ease, color .45s ease, fill .45s ease, box-shadow .45s ease !important;
+}
 body::before{
   content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   background:
@@ -92,6 +110,19 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
 }
 .eyebrow::before{content:"";width:22px;height:1px;background:var(--accent)}
 
+/* ---------- scroll progress ---------- */
+/* a full-width hairline fixed to the very top of the viewport. Native
+   CSS scroll-driven animation where supported (zero scroll-listener
+   cost); the JS in site.js is a rAF-throttled fallback everywhere else. */
+.scroll-progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:50;pointer-events:none}
+.scroll-progress .bar{display:block;height:100%;width:100%;transform-origin:0 50%;transform:scaleX(0);background:var(--accent-text)}
+@supports (animation-timeline: scroll()){
+  @media (prefers-reduced-motion:no-preference){
+    .scroll-progress .bar{animation:scrollprog linear both;animation-timeline:scroll(root);animation-range:0% 100%}
+    @keyframes scrollprog{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  }
+}
+
 /* ---------- top bar ---------- */
 .topbar{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);
   background:color-mix(in srgb, var(--ink) 78%, transparent);
@@ -109,13 +140,76 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
 .theme-toggle{
   width:34px;height:34px;border-radius:9px;border:1px solid var(--line-2);
   background:transparent;color:var(--text);cursor:pointer;
-  display:inline-flex;align-items:center;justify-content:center;
-  transition:border-color .18s ease, transform .18s ease, background .18s ease;
+  display:inline-flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+  transition:border-color .18s ease, background .18s ease;
 }
-.theme-toggle:hover{border-color:var(--accent);transform:translateY(-1px)}
-.theme-toggle svg{width:17px;height:17px;display:block}
-[data-theme="dark"] .theme-toggle .i-moon{display:none}
-[data-theme="light"] .theme-toggle .i-sun{display:none}
+.theme-toggle:hover{border-color:var(--accent)}
+.theme-toggle svg{
+  width:17px;height:17px;position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) rotate(0deg) scale(1);opacity:1;
+  transition:opacity .45s var(--ease-settled), transform .45s var(--ease-settled);
+}
+[data-theme="dark"] .theme-toggle .i-moon{opacity:0;transform:translate(-50%,-50%) rotate(-80deg) scale(.4);pointer-events:none}
+[data-theme="light"] .theme-toggle .i-sun{opacity:0;transform:translate(-50%,-50%) rotate(80deg) scale(.4);pointer-events:none}
+@media (prefers-reduced-motion:no-preference){
+  .theme-toggle{transition:border-color .18s ease, transform .18s ease, background .18s ease}
+  .theme-toggle:hover{transform:translateY(-1px)}
+  .theme-toggle:active{transform:translateY(-1px) scale(.9)}
+}
+@media (prefers-reduced-motion:reduce){
+  .theme-toggle:active{transform:none}
+  .theme-toggle svg{transition:opacity .01ms linear;transform:translate(-50%,-50%) !important}
+}
+
+/* ---------- mobile menu (hamburger disclosure) ----------
+   A dropdown panel anchored to the topbar (position:absolute, so it
+   overlays rather than pushing content — no layout-property animation
+   involved anywhere here). Reveal is opacity + transform only, and the
+   transform is additionally gated so reduced-motion users still get an
+   instant, correct end state via the always-on opacity fade. Real
+   Tab-trap / outside-click / resize-close logic lives in site.js. */
+.menu-toggle{
+  display:none;width:34px;height:34px;border-radius:9px;border:1px solid var(--line-2);
+  background:transparent;color:var(--text);cursor:pointer;
+  align-items:center;justify-content:center;flex:0 0 auto;
+  transition:border-color .18s ease, background .18s ease;
+}
+.menu-toggle:hover{border-color:var(--accent)}
+.menu-toggle-bars{position:relative;width:16px;height:11px;display:inline-block}
+.menu-toggle-bars span{position:absolute;left:0;right:0;height:1.5px;background:currentColor;border-radius:1px}
+.menu-toggle-bars span:nth-child(1){top:0}
+.menu-toggle-bars span:nth-child(2){top:50%;transform:translateY(-50%)}
+.menu-toggle-bars span:nth-child(3){bottom:0}
+.menu-toggle[aria-expanded="true"] .menu-toggle-bars span:nth-child(1){transform:translateY(4.75px) rotate(45deg)}
+.menu-toggle[aria-expanded="true"] .menu-toggle-bars span:nth-child(2){opacity:0}
+.menu-toggle[aria-expanded="true"] .menu-toggle-bars span:nth-child(3){transform:translateY(-4.75px) rotate(-45deg)}
+@media (prefers-reduced-motion:no-preference){
+  .menu-toggle-bars span{transition:transform .25s var(--ease-settled), opacity .2s ease}
+}
+
+.mobile-menu{
+  position:absolute;top:100%;left:0;right:0;
+  background:color-mix(in srgb, var(--panel) 97%, transparent);
+  border-bottom:1px solid var(--line);backdrop-filter:blur(10px);
+  opacity:0;transition:opacity .22s ease;z-index:25;
+}
+.mobile-menu[hidden]{display:none}
+.mobile-menu.open{opacity:1}
+@media (prefers-reduced-motion:no-preference){
+  .mobile-menu{transform:translateY(-8px);transition:opacity .22s ease, transform .22s var(--ease-settled)}
+  .mobile-menu.open{transform:translateY(0)}
+}
+.mobile-nav{max-width:var(--maxw);margin:0 auto;display:flex;flex-direction:column;padding:4px 24px 16px}
+.mobile-nav a{font-family:var(--mono);font-size:14.5px;color:var(--text);padding:14px 2px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;transition:color .18s ease}
+.mobile-nav a:last-child{border-bottom:none}
+.mobile-nav a::after{content:"→";color:var(--muted-2);font-size:13px}
+.mobile-nav a.gh{color:var(--accent-text)}
+.mobile-nav a:hover,.mobile-nav a:focus-visible{color:var(--accent-text)}
+
+@media (max-width:880px){
+  .menu-toggle{display:inline-flex}
+  .status{display:none}
+}
 
 /* back link on subpages */
 .backlink{font-family:var(--mono);font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:7px;transition:color .18s ease}
@@ -123,12 +217,26 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
 
 /* ---------- buttons ---------- */
 .btn{font-family:var(--mono);font-size:13.5px;padding:11px 18px;border-radius:9px;
-  border:1px solid var(--line-2);color:var(--text);
-  transition:border-color .18s ease, background .18s ease, transform .18s ease;
+  border:1px solid var(--line-2);color:var(--text);position:relative;overflow:hidden;
+  transition:border-color .18s ease, background .18s ease;
   display:inline-flex;align-items:center;gap:9px;cursor:pointer;}
-.btn:hover{border-color:var(--accent);transform:translateY(-2px)}
+.btn::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg, transparent 35%, color-mix(in srgb, var(--text) 16%, transparent) 50%, transparent 65%);
+  transform:translateX(-130%);transition:transform .6s var(--ease-settled);}
+.btn.primary::before{background:linear-gradient(115deg, transparent 35%, color-mix(in srgb, var(--btn-ink) 22%, transparent) 50%, transparent 65%)}
+.btn:hover{border-color:var(--accent)}
+.btn:hover::before{transform:translateX(130%)}
 .btn.primary{background:var(--accent);color:var(--btn-ink);border-color:var(--accent);font-weight:500}
 .btn.primary:hover{filter:brightness(1.06)}
+@media (prefers-reduced-motion:no-preference){
+  .btn{transition:border-color .18s ease, background .18s ease, transform .18s ease}
+  .btn:hover{transform:translateY(-2px)}
+  .btn:active{transform:translateY(-1px) scale(.96)}
+}
+@media (prefers-reduced-motion:reduce){
+  .btn::before{display:none}
+  .btn:active{transform:none}
+}
 
 /* ---------- section frame ---------- */
 section.block{padding:66px 0;border-top:1px solid var(--line)}
@@ -136,17 +244,34 @@ section.block{padding:66px 0;border-top:1px solid var(--line)}
 .head h2{font-family:var(--display);font-weight:600;font-size:clamp(26px,4vw,36px);letter-spacing:-.01em;margin-top:14px}
 
 /* ---------- reveal ---------- */
-.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease, transform .6s ease}
+/* base: quiet paragraphs, meta rows, ctas — a small, settled rise */
+.reveal{opacity:0;transform:translateY(16px);
+  transition:opacity .7s var(--ease-settled), transform .7s var(--ease-settled)}
+.reveal.will-anim{will-change:opacity, transform}
 .reveal.in{opacity:1;transform:none}
-@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+
+/* headings rise a touch further, so hierarchy reads in the motion too */
+h1.reveal,.head.reveal{
+  transform:translateY(26px);
+  transition:opacity .8s var(--ease-settled), transform .8s var(--ease-settled)}
+
+/* boxed / card-like elements fade+scale in rather than just sliding */
+.card.reveal,.cat.reveal,.job.reveal,.rcol.reveal,.feature.reveal,
+.gh-handle.reveal,.shot.reveal,.gh-chart.reveal,.gh-handles.reveal,.contact-inner.reveal{
+  transform:translateY(12px) scale(.98);
+  transition:opacity .6s var(--ease-settled), transform .6s var(--ease-settled)}
+
+@media (prefers-reduced-motion:reduce){
+  .reveal,.reveal.in,h1.reveal,.head.reveal,
+  .card.reveal,.cat.reveal,.job.reveal,.rcol.reveal,.feature.reveal,
+  .gh-handle.reveal,.shot.reveal,.gh-chart.reveal,.gh-handles.reveal,.contact-inner.reveal{
+    opacity:1;transform:none;transition:none}
+}
 
 /* ---------- footer ---------- */
 footer{border-top:1px solid var(--line);padding:30px 0 46px;margin-top:10px}
 footer .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;font-family:var(--mono);font-size:12.5px;color:var(--muted-2)}
 
-@media (max-width:720px){
-  .status{display:none}
-}
 
 /* ============================================================
    project pages (case studies)
@@ -175,9 +300,13 @@ footer .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;f
 [data-theme="light"] .gallery.float .shot img{filter:drop-shadow(0 22px 44px rgba(30,30,40,.18))}
 
 .gallery.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px}
-.gallery.cards .shot{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:14px;transition:border-color .2s ease,transform .2s ease}
-.gallery.cards .shot:hover{border-color:var(--line-2);transform:translateY(-3px)}
+.gallery.cards .shot{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:14px;transition:border-color .2s ease}
+.gallery.cards .shot:hover{border-color:var(--line-2)}
 .gallery.cards .shot img{width:100%;max-width:240px;height:auto;border-radius:10px;display:block}
+@media (prefers-reduced-motion:no-preference){
+  .gallery.cards .shot{transition:border-color .2s ease, transform .2s ease}
+  .gallery.cards .shot:hover{transform:translateY(-3px)}
+}
 
 .caption{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center;letter-spacing:.02em}
 
@@ -198,9 +327,13 @@ footer .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;f
 
 /* wide gallery (admin / web marketing shots) */
 .gallery.wide{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.gallery.wide .shot{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:12px;transition:border-color .2s ease,transform .2s ease}
-.gallery.wide .shot:hover{border-color:var(--line-2);transform:translateY(-3px)}
+.gallery.wide .shot{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:12px;transition:border-color .2s ease}
+.gallery.wide .shot:hover{border-color:var(--line-2)}
 .gallery.wide .shot img{width:100%;height:auto;border-radius:10px;display:block}
+@media (prefers-reduced-motion:no-preference){
+  .gallery.wide .shot{transition:border-color .2s ease, transform .2s ease}
+  .gallery.wide .shot:hover{transform:translateY(-3px)}
+}
 
 .subhead{font-family:var(--mono);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-text);margin:0 0 18px}
 .subhead + .gallery{margin-bottom:40px}
@@ -213,26 +346,33 @@ footer .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;f
    v2: nav, browser frames, card thumbnails, github, motion
    ============================================================ */
 
-/* refined reveal easing */
-.reveal{transition:opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1)}
-
 /* top nav */
 .nav{display:flex;align-items:center;gap:20px}
 .nav a{font-family:var(--mono);font-size:13px;color:var(--muted);position:relative;transition:color .18s ease}
-.nav a::after{content:"";position:absolute;left:0;right:100%;bottom:-5px;height:1px;background:var(--accent);transition:right .25s ease}
+.nav a::after{content:"";position:absolute;left:0;right:100%;bottom:-5px;height:1px;background:var(--accent)}
 .nav a:hover{color:var(--text)}
 .nav a:hover::after{right:0}
+@media (prefers-reduced-motion:no-preference){
+  .nav a::after{transition:right .25s ease}
+}
 .nav a.gh{color:var(--accent-text)}
 @media (max-width:880px){.nav{display:none}}
 
-/* browser frame for wide web screenshots */
-.browser{border:1px solid var(--line);border-radius:13px;overflow:hidden;background:var(--panel);box-shadow:0 18px 42px rgba(0,0,0,.30);transition:transform .25s ease, border-color .25s ease}
+/* browser frame for wide web screenshots. Always wrapped in an <a> in this
+   codebase, so the hover state goes full accent (same language as
+   a.card:hover) rather than the neutral line-2 used by non-interactive
+   surfaces — a little extra warmth to match the homepage cards. */
+.browser{border:1px solid var(--line);border-radius:13px;overflow:hidden;background:var(--panel);box-shadow:0 18px 42px rgba(0,0,0,.30);transition:border-color .25s ease}
 [data-theme="light"] .browser{box-shadow:0 16px 36px rgba(30,30,40,.13)}
-.browser:hover{transform:translateY(-3px);border-color:var(--line-2)}
+.browser:hover{border-color:var(--accent)}
 .browser .bar{display:flex;align-items:center;gap:7px;padding:10px 13px;border-bottom:1px solid var(--line);background:var(--panel-2)}
 .browser .bar i{width:10px;height:10px;border-radius:50%;background:var(--line-2);display:inline-block}
 .browser .bar .url{margin-left:12px;font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--ink);padding:4px 12px;border-radius:6px;border:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .browser img{display:block;width:100%;height:auto}
+@media (prefers-reduced-motion:no-preference){
+  .browser{transition:transform .25s ease, border-color .25s ease}
+  .browser:hover{transform:translateY(-3px)}
+}
 
 .gallery.web{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:22px}
 .gallery.web .shot{display:flex;flex-direction:column;gap:12px}
@@ -243,9 +383,25 @@ footer .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;f
 .livepill .d{width:7px;height:7px;border-radius:50%;background:var(--ok)}
 
 /* card thumbnails (gallery-linked project cards) */
-.thumbwrap{overflow:hidden;border-radius:11px;border:1px solid var(--line);margin-bottom:16px;background:var(--panel-2);aspect-ratio:16/10}
-.thumbwrap img{display:block;width:100%;height:100%;object-fit:cover;object-position:top;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
-a.card:hover .thumbwrap img{transform:scale(1.045)}
+.thumbwrap{overflow:hidden;border-radius:11px;border:1px solid var(--line);margin-bottom:16px;background:var(--panel-2);aspect-ratio:16/10;position:relative}
+.thumbwrap img{display:block;width:100%;height:100%;object-fit:cover;object-position:top}
+@media (prefers-reduced-motion:no-preference){
+  .thumbwrap img{transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+  a.card:hover .thumbwrap img{transform:scale(1.045)}
+}
+/* bottom scrim on the thumbnail: fades in on hover for a touch of depth.
+   Opacity is always-on (the accessible fallback per the motion policy
+   above); the slide-up offset is reduced-motion-gated. */
+.thumbwrap::after{
+  content:"";position:absolute;inset:auto 0 0 0;height:58%;
+  background:linear-gradient(to top, color-mix(in srgb, var(--ink) 75%, transparent), transparent);
+  opacity:0;transition:opacity .3s ease;pointer-events:none;
+}
+a.card:hover .thumbwrap::after{opacity:1}
+@media (prefers-reduced-motion:no-preference){
+  .thumbwrap::after{transform:translateY(14%);transition:opacity .4s ease, transform .45s cubic-bezier(.2,.7,.2,1)}
+  a.card:hover .thumbwrap::after{transform:translateY(0)}
+}
 .card .badge{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-text);border:1px solid var(--accent-text);border-radius:6px;padding:2px 8px}
 .card .toprow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
 
@@ -255,14 +411,34 @@ a.card:hover .thumbwrap img{transform:scale(1.045)}
 .gh-chart .lbl{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .gh-chart img{width:100%;height:auto;display:block}
 .gh-chart .fallback{color:var(--muted);font-size:14px}
+
 .gh-handles{display:flex;flex-direction:column;gap:10px}
-.gh-handle{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;transition:border-color .2s ease, transform .2s ease}
-.gh-handle:hover{border-color:var(--accent);transform:translateX(3px)}
+.gh-handle{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;transition:border-color .2s ease}
+.gh-handle:hover{border-color:var(--accent)}
 .gh-handle .h{display:flex;align-items:center;gap:11px}
 .gh-handle .h svg{width:19px;height:19px;flex:0 0 auto}
 .gh-handle .name{font-family:var(--mono);font-size:14px;color:var(--text)}
 .gh-handle .tag{font-family:var(--mono);font-size:11px;color:var(--muted-2)}
 .gh-handle .go{font-family:var(--mono);font-size:12px;color:var(--accent-text)}
+
+/* per-item staggered slide-in once the list's .reveal IntersectionObserver
+   adds .in to .gh-handles (see site.js) — reads as a cascading entrance
+   for a list of 4, rather than the whole block fading in as one unit.
+   Base rule is the opacity-only accessible fallback; the offset/stagger
+   is reduced-motion-gated. Hover transform is scoped to `.in` at higher
+   specificity than the reveal's own transform:none so it isn't shadowed
+   once the list has settled in. */
+.gh-handles .gh-handle{opacity:0}
+.gh-handles.in .gh-handle{opacity:1;transition:opacity .4s var(--ease-settled), border-color .2s ease}
+@media (prefers-reduced-motion:no-preference){
+  .gh-handles .gh-handle{transform:translateX(30px)}
+  .gh-handles.in .gh-handle{transform:none;transition:opacity .55s var(--ease-settled), transform .55s var(--ease-settled), border-color .2s ease}
+  .gh-handles.in .gh-handle:nth-child(1){transition-delay:.06s}
+  .gh-handles.in .gh-handle:nth-child(2){transition-delay:.15s}
+  .gh-handles.in .gh-handle:nth-child(3){transition-delay:.24s}
+  .gh-handles.in .gh-handle:nth-child(4){transition-delay:.33s}
+  .gh-handles.in .gh-handle:hover{transform:translateX(3px);transition:transform .2s ease, border-color .2s ease}
+}
 
 @media (max-width:820px){
   .gh-wrap{grid-template-columns:1fr;gap:18px}
