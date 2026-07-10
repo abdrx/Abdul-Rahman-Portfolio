@@ -137,6 +137,36 @@
     });
   })();
 
+  // ---------- hero typewriter ----------
+  // cycles through a few real facts, terminal-prompt style. Index only.
+  // Shows the first phrase statically, no typing/deleting, under reduced motion.
+  (function(){
+    var el = document.getElementById('heroType');
+    if(!el) return;
+    var phrases = [
+      'leads a 22-product logistics ERP at Shypv',
+      'built a payment gateway, PCI-DSS certified',
+      'ships full-stack, backend to frontend'
+    ];
+    if(reduce){ el.textContent = phrases[0]; return; }
+    var pi = 0, ci = 0, deleting = false;
+    function tick(){
+      var word = phrases[pi];
+      if(!deleting){
+        ci++;
+        el.textContent = word.slice(0, ci);
+        if(ci === word.length){ deleting = true; setTimeout(tick, 1700); return; }
+        setTimeout(tick, 34 + Math.random() * 38);
+      } else {
+        ci--;
+        el.textContent = word.slice(0, ci);
+        if(ci === 0){ deleting = false; pi = (pi + 1) % phrases.length; setTimeout(tick, 260); return; }
+        setTimeout(tick, 20);
+      }
+    }
+    tick();
+  })();
+
   // ---------- magnetic tilt on project + skill cards ----------
   // Desktop, fine-pointer only; a no-op under reduced motion. Index
   // only — subpages have no .card/.cat elements, so this harmlessly
