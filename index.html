@@ -36,7 +36,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/site.css?v=20260710">
+<link rel="stylesheet" href="assets/site.css?v=20260713b">
 
 <style>
   /* hero */
@@ -51,9 +51,14 @@
   .hero-type .type-text{color:var(--text)}
   .hero-type .type-caret{color:var(--accent-text);animation:blink 1.15s step-end infinite}
   @media (prefers-reduced-motion:reduce){.hero-type .type-caret{animation:none}}
-  /* soft glow that gently tracks the pointer, desktop only (see site.js) */
-  .hero-glow{position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.85;
-    background:radial-gradient(380px 380px at var(--mx,28%) var(--my,10%), var(--glow1), transparent 70%);
+  /* soft glow that gently tracks the pointer, desktop only (see site.js).
+     Full-bleed to the viewport width (not just the .wrap column) via the
+     100vw/-50vw breakout, since .hero itself sits inside the centered,
+     max-width .wrap container. Height still matches .hero exactly since
+     top/bottom stay 0 relative to it. */
+  .hero-glow{position:absolute;top:0;bottom:0;left:50%;width:100vw;margin-left:-50vw;
+    z-index:-1;pointer-events:none;opacity:.85;
+    background:radial-gradient(600px 600px at var(--mx,28%) var(--my,10%), var(--glow1), transparent 70%);
     transition:opacity .5s ease}
   @media (prefers-reduced-motion:reduce),(pointer:coarse){.hero-glow{display:none}}
   .lead{font-size:clamp(17px,2.3vw,20px);color:var(--text);max-width:600px;margin-bottom:34px}
@@ -395,22 +400,10 @@
         <svg class="chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
       <div class="gh-wrap">
-      <div class="gh-charts">
-        <div class="gh-chart">
-          <div class="lbl"><span class="dot" style="background:var(--accent)"></span>@abdrx <span class="tag-primary">primary</span></div>
-          <img src="https://ghchart.rshah.org/efb247/abdrx" alt="GitHub contribution graph for abdrx" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-          <p class="fallback" style="display:none">Live contribution graph loads once the site is hosted. Open the profile below to see the repos.</p>
-        </div>
-        <div class="gh-chart">
-          <div class="lbl"><span class="dot" style="background:var(--accent)"></span>@abdrx2025</div>
-          <img src="https://ghchart.rshah.org/efb247/abdrx2025" alt="GitHub contribution graph for abdrx2025" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-          <p class="fallback" style="display:none">Live contribution graph loads once the site is hosted. Open the profile below to see the repos.</p>
-        </div>
-        <div class="gh-chart">
-          <div class="lbl"><span class="dot" style="background:var(--accent)"></span>@intermo</div>
-          <img src="https://ghchart.rshah.org/efb247/intermo" alt="GitHub contribution graph for intermo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-          <p class="fallback" style="display:none">Live contribution graph loads once the site is hosted. Open the profile below to see the repos.</p>
-        </div>
+      <div class="gh-feed">
+        <div class="lbl"><span class="dot" style="background:var(--accent)"></span>recent activity · @abdrx + @abdrx2025 + @intermo combined</div>
+        <p class="gh-feed-status" id="ghFeedStatus">Loading recent activity…</p>
+        <ul class="gh-feed-list" id="ghFeedList" hidden></ul>
       </div>
       <div class="gh-handles">
         <a class="gh-handle" href="https://github.com/abdrx" target="_blank" rel="noopener">
@@ -494,6 +487,6 @@
   </div>
 </footer>
 
-<script src="assets/site.js?v=20260710" defer></script>
+<script src="assets/site.js?v=20260713b" defer></script>
 </body>
 </html>

@@ -116,22 +116,28 @@
   })();
 
   // ---------- hero glow ----------
-  // a very low-opacity radial glow that follows the pointer.
-  // Desktop, fine-pointer only; skipped entirely under reduced motion.
+  // a very low-opacity radial glow that follows the pointer, full-bleed to
+  // the viewport width (see .hero-glow's 100vw breakout in the CSS). Listens
+  // on document, not .hero, since .hero itself is still the narrower
+  // .wrap-constrained box — the glow visually extends past it, and a
+  // listener scoped to .hero would never fire for pointer movement in that
+  // extra margin. Position is computed against the glow's own (viewport-
+  // wide) rect. Desktop, fine-pointer only; skipped under reduced motion.
   // Index only — no-ops on subpages, which have no .hero-glow element.
   (function(){
-    var hero = document.querySelector('.hero');
-    var glow = hero && hero.querySelector('.hero-glow');
-    if(!hero || !glow) return;
+    var glow = document.querySelector('.hero-glow');
+    if(!glow) return;
     var fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     if(!fine || reduce) return;
     var raf = null;
-    hero.addEventListener('pointermove', function(e){
+    document.addEventListener('pointermove', function(e){
       if(raf) return;
       raf = requestAnimationFrame(function(){
-        var r = hero.getBoundingClientRect();
-        glow.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
-        glow.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+        var r = glow.getBoundingClientRect();
+        if(r.height > 0 && e.clientY >= r.top && e.clientY <= r.bottom){
+          glow.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+          glow.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+        }
         raf = null;
       });
     });
@@ -318,15 +324,127 @@
     window.addEventListener('resize', onScroll);
   })();
 
-  // ---------- github graph fallback ----------
-  // shows a text fallback per chart if its external image doesn't load. Index only.
+  // ---------- github combined commit feed ----------
+  // fetches each account's public events from GitHub's REST API, merges
+  // pushes/repo-creations across all three, and renders the most recent as
+  // a flat feed — replacing what used to be three separate (often near-
+  // empty) contribution heatmap images. Fetched lazily on first expand of
+  // the <details> (not on page load — most visitors never open it), and
+  // cached in sessionStorage for a few minutes so repeat views/opens in
+  // the same session don't refetch. Fails soft to a plain status line
+  // pointing at the profile links below if the API is unreachable or
+  // rate-limited (60 req/hr per IP, unauthenticated). Index only.
   (function(){
-    var imgs = document.querySelectorAll('.gh-chart img');
-    if(!imgs.length) return;
-    imgs.forEach(function(img){
-      function fb(){ img.style.display='none'; var f=img.nextElementSibling; if(f) f.style.display='block'; }
-      if(img.complete && img.naturalWidth===0) fb();
-      setTimeout(function(){ if(!(img.complete && img.naturalWidth>0)) fb(); }, 4500);
+    var details = document.querySelector('.gh-details');
+    var statusEl = document.getElementById('ghFeedStatus');
+    var listEl = document.getElementById('ghFeedList');
+    if(!details || !statusEl || !listEl) return;
+
+    var USERS = ['abdrx', 'abdrx2025', 'intermo'];
+    var CACHE_KEY = 'abdrx-gh-feed-v1';
+    var CACHE_MS = 10 * 60 * 1000;
+    var loaded = false;
+
+    function timeAgo(iso){
+      var diff = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+      var units = [[31536000,'y'],[2592000,'mo'],[604800,'w'],[86400,'d'],[3600,'h'],[60,'m']];
+      for(var i = 0; i < units.length; i++){
+        var v = Math.floor(diff / units[i][0]);
+        if(v >= 1) return v + units[i][1] + ' ago';
+      }
+      return 'just now';
+    }
+
+    // GitHub logs one PushEvent per `git push`, so an active day of small
+    // commits comes back as many near-identical rows ("pushed 1 commit to
+    // X" repeated). Aggregate consecutive pushes to the same repo (by the
+    // same account) into a single summed entry instead.
+    function aggregate(rawEvents){
+      var pushGroups = {};
+      var creates = [];
+      rawEvents.forEach(function(e){
+        var repo = e.repo && e.repo.name;
+        var who = e.actor && e.actor.login;
+        if(!repo || !who) return;
+        if(e.type === 'PushEvent'){
+          var commits = (e.payload && e.payload.commits) || [];
+          var n = commits.length || 1;
+          var last = commits[commits.length - 1];
+          var key = who + '/' + repo;
+          var g = pushGroups[key];
+          if(!g){ g = pushGroups[key] = {repo: repo, who: who, commits: 0, when: e.created_at, sha: null}; }
+          g.commits += n;
+          if(new Date(e.created_at) > new Date(g.when)){
+            g.when = e.created_at;
+            if(last && last.sha) g.sha = last.sha;
+          } else if(!g.sha && last && last.sha){
+            g.sha = last.sha;
+          }
+        } else if(e.type === 'CreateEvent' && e.payload && e.payload.ref_type === 'repository'){
+          creates.push({repo: repo, who: who, when: e.created_at});
+        }
+      });
+      var items = Object.keys(pushGroups).map(function(k){
+        var g = pushGroups[k];
+        var url = g.sha ? 'https://github.com/' + g.repo + '/commit/' + g.sha : 'https://github.com/' + g.repo;
+        return {
+          url: url,
+          text: 'pushed ' + g.commits + ' commit' + (g.commits === 1 ? '' : 's') + ' to <b>' + g.repo + '</b>',
+          who: g.who,
+          when: g.when
+        };
+      });
+      creates.forEach(function(c){
+        items.push({url: 'https://github.com/' + c.repo, text: 'created <b>' + c.repo + '</b>', who: c.who, when: c.when});
+      });
+      items.sort(function(a, b){ return new Date(b.when) - new Date(a.when); });
+      return items;
+    }
+
+    function render(events){
+      if(!events.length){
+        statusEl.textContent = 'No recent public activity — see the profiles below.';
+        return;
+      }
+      listEl.innerHTML = events.map(function(e){
+        return '<li class="gh-feed-item"><a href="' + e.url + '" target="_blank" rel="noopener">' +
+          '<span class="gh-feed-text">' + e.text + '</span>' +
+          '<span class="gh-feed-meta"><span class="gh-feed-who">@' + e.who + '</span><span>' + timeAgo(e.when) + '</span></span>' +
+          '</a></li>';
+      }).join('');
+      listEl.hidden = false;
+      statusEl.hidden = true;
+    }
+
+    function fetchLive(){
+      Promise.all(USERS.map(function(u){
+        return fetch('https://api.github.com/users/' + u + '/events/public')
+          .then(function(r){ return r.ok ? r.json() : []; })
+          .catch(function(){ return []; });
+      })).then(function(results){
+        var raw = [];
+        results.forEach(function(list){ raw = raw.concat(list || []); });
+        var events = aggregate(raw).slice(0, 8);
+        try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify({t: Date.now(), events: events})); }catch(e){}
+        render(events);
+      }).catch(function(){
+        statusEl.textContent = "Couldn't load live activity right now — see the profiles below.";
+      });
+    }
+
+    function load(){
+      try{
+        var cached = sessionStorage.getItem(CACHE_KEY);
+        if(cached){
+          var parsed = JSON.parse(cached);
+          if(Date.now() - parsed.t < CACHE_MS){ render(parsed.events); return; }
+        }
+      }catch(e){}
+      fetchLive();
+    }
+
+    details.addEventListener('toggle', function(){
+      if(details.open && !loaded){ loaded = true; load(); }
     });
   })();
 
